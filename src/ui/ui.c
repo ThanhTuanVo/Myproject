@@ -5,12 +5,9 @@
 
 #include "ui.h"
 #include "ui_helpers.h"
-#include <stdio.h>
-
-///////////////////// VARIABLES ////////////////////
-
 char wifi_ssid[32];
 char wifi_password[32];
+///////////////////// VARIABLES ////////////////////
 
 // SCREEN: ui_Screen1
 void ui_Screen1_screen_init(void);
@@ -56,18 +53,78 @@ void ui_Screen2_screen_init(void);
 lv_obj_t * ui_Screen2;
 lv_obj_t * ui_optionprocess;
 lv_obj_t * ui_processlabel;
-lv_obj_t * ui_tempsetting;
 lv_obj_t * ui_templabel1;
 lv_obj_t * ui_humdlabel;
-lv_obj_t * ui_humdsetting;
-lv_obj_t * ui_timesetting;
 lv_obj_t * ui_timelabel;
+void ui_event_tempsetting1(lv_event_t * e);
+lv_obj_t * ui_tempsetting1;
+void ui_event_humdsetting1(lv_event_t * e);
+lv_obj_t * ui_humdsetting1;
+void ui_event_timesetting1(lv_event_t * e);
+lv_obj_t * ui_timesetting1;
+void ui_event_tempsetting2(lv_event_t * e);
+lv_obj_t * ui_tempsetting2;
+void ui_event_humdsetting2(lv_event_t * e);
+lv_obj_t * ui_humdsetting2;
+void ui_event_timesetting2(lv_event_t * e);
+lv_obj_t * ui_timesetting2;
+void ui_event_tempsetting3(lv_event_t * e);
+lv_obj_t * ui_tempsetting3;
+void ui_event_humdsetting3(lv_event_t * e);
+lv_obj_t * ui_humdsetting3;
+void ui_event_timesetting3(lv_event_t * e);
+lv_obj_t * ui_timesetting3;
+void ui_event_tempsetting4(lv_event_t * e);
+lv_obj_t * ui_tempsetting4;
+void ui_event_humdsetting4(lv_event_t * e);
+lv_obj_t * ui_humdsetting4;
+void ui_event_timesetting4(lv_event_t * e);
+lv_obj_t * ui_timesetting4;
 void ui_event_okbnt(lv_event_t * e);
 lv_obj_t * ui_okbnt;
 lv_obj_t * ui_Label13;
 void ui_event_cancelbnt(lv_event_t * e);
 lv_obj_t * ui_cancelbnt;
 lv_obj_t * ui_Label14;
+lv_obj_t * ui_Keyboard2;
+
+
+void ui_event_okbnt(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if (event_code == LV_EVENT_RELEASED) {
+        // Lấy thông tin từ các textarea
+        const char * temperature1 = lv_textarea_get_text(ui_tempsetting1);
+        const char * humidity1 = lv_textarea_get_text(ui_humdsetting1);
+        const char * time1 = lv_textarea_get_text(ui_timesetting1);
+
+        const char * temperature2 = lv_textarea_get_text(ui_tempsetting2);
+        const char * humidity2 = lv_textarea_get_text(ui_humdsetting2);
+        const char * time2 = lv_textarea_get_text(ui_timesetting2);
+
+        const char * temperature3 = lv_textarea_get_text(ui_tempsetting3);
+        const char * humidity3 = lv_textarea_get_text(ui_humdsetting3);
+        const char * time3 = lv_textarea_get_text(ui_timesetting3);
+
+        const char * temperature4 = lv_textarea_get_text(ui_tempsetting4);
+        const char * humidity4 = lv_textarea_get_text(ui_humdsetting4);
+        const char * time4 = lv_textarea_get_text(ui_timesetting4);
+
+        // In thông số của tất cả các giai đoạn
+        printf("Giai doan 1 (Say khu am) - Nhiệt độ: %s, Độ ẩm: %s, Thời gian: %s\n", temperature1, humidity1, time1);
+        printf("Giai doan 2 (Len men) - Nhiệt độ: %s, Độ ẩm: %s, Thời gian: %s\n", temperature2, humidity2, time2);
+        printf("Giai doan 3 (On dinh) - Nhiệt độ: %s, Độ ẩm: %s, Thời gian: %s\n", temperature3, humidity3, time3);
+        printf("Giai doan 4 (Bao quan) - Nhiệt độ: %s, Độ ẩm: %s, Thời gian: %s\n", temperature4, humidity4, time4);
+
+        // Xóa màn hình hiện tại (ui_Screen2)
+        _ui_screen_delete(&ui_Screen2);
+
+        // Chuyển sang màn hình ui_Screen3
+        _ui_screen_change(&ui_Screen3, LV_SCR_LOAD_ANIM_MOVE_TOP, 500, 0, &ui_Screen3_screen_init);
+    }
+}
+
 // CUSTOM VARIABLES
 
 // SCREEN: ui_Screen3
@@ -140,13 +197,111 @@ void ui_event_Settingbnt(lv_event_t * e)
     }
 }
 
-void ui_event_okbnt(lv_event_t * e)
+void ui_event_tempsetting1(lv_event_t * e)
 {
     lv_event_code_t event_code = lv_event_get_code(e);
 
     if(event_code == LV_EVENT_RELEASED) {
-        _ui_screen_delete(&ui_Screen2);
-        _ui_screen_change(&ui_Screen3, LV_SCR_LOAD_ANIM_MOVE_TOP, 500, 0, &ui_Screen3_screen_init);
+        _ui_keyboard_set_target(ui_Keyboard2,  ui_tempsetting1);
+    }
+}
+
+void ui_event_humdsetting1(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_RELEASED) {
+        _ui_keyboard_set_target(ui_Keyboard2,  ui_humdsetting1);
+    }
+}
+
+void ui_event_timesetting1(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_RELEASED) {
+        _ui_keyboard_set_target(ui_Keyboard2,  ui_timesetting1);
+    }
+}
+
+void ui_event_tempsetting2(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_RELEASED) {
+        _ui_keyboard_set_target(ui_Keyboard2,  ui_tempsetting2);
+    }
+}
+
+void ui_event_humdsetting2(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_RELEASED) {
+        _ui_keyboard_set_target(ui_Keyboard2,  ui_humdsetting2);
+    }
+}
+
+void ui_event_timesetting2(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_RELEASED) {
+        _ui_keyboard_set_target(ui_Keyboard2,  ui_timesetting2);
+    }
+}
+
+void ui_event_tempsetting3(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_RELEASED) {
+        _ui_keyboard_set_target(ui_Keyboard2,  ui_tempsetting3);
+    }
+}
+
+void ui_event_humdsetting3(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_RELEASED) {
+        _ui_keyboard_set_target(ui_Keyboard2,  ui_humdsetting3);
+    }
+}
+
+void ui_event_timesetting3(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_RELEASED) {
+        _ui_keyboard_set_target(ui_Keyboard2,  ui_timesetting3);
+    }
+}
+
+void ui_event_tempsetting4(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_RELEASED) {
+        _ui_keyboard_set_target(ui_Keyboard2,  ui_tempsetting4);
+    }
+}
+
+void ui_event_humdsetting4(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_RELEASED) {
+        _ui_keyboard_set_target(ui_Keyboard2,  ui_humdsetting4);
+    }
+}
+
+void ui_event_timesetting4(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_RELEASED) {
+        _ui_keyboard_set_target(ui_Keyboard2,  ui_timesetting4);
     }
 }
 
@@ -254,8 +409,8 @@ void ui_event_KeyBoard1(lv_event_t * e){
         snprintf(wifi_password, sizeof(wifi_password), "%s", lv_textarea_get_text(ui_passtext));
         printf("DEBUG: SSID=%s, PASS=%s\n", wifi_ssid, wifi_password);
     }
-    
- }
+}
+
  const char * get_wifi_ssid() {
     return wifi_ssid;
 }
@@ -263,4 +418,3 @@ void ui_event_KeyBoard1(lv_event_t * e){
 const char * get_wifi_password() {
     return wifi_password;
 }
-

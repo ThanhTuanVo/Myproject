@@ -65,20 +65,43 @@ void ui_Screen2_screen_init(void);
 extern lv_obj_t * ui_Screen2;
 extern lv_obj_t * ui_optionprocess;
 extern lv_obj_t * ui_processlabel;
-extern lv_obj_t * ui_tempsetting;
 extern lv_obj_t * ui_templabel1;
 extern lv_obj_t * ui_humdlabel;
-extern lv_obj_t * ui_humdsetting;
-extern lv_obj_t * ui_timesetting;
 extern lv_obj_t * ui_timelabel;
+void ui_event_tempsetting1(lv_event_t * e);
+extern lv_obj_t * ui_tempsetting1;
+void ui_event_humdsetting1(lv_event_t * e);
+extern lv_obj_t * ui_humdsetting1;
+void ui_event_timesetting1(lv_event_t * e);
+extern lv_obj_t * ui_timesetting1;
+void ui_event_tempsetting2(lv_event_t * e);
+extern lv_obj_t * ui_tempsetting2;
+void ui_event_humdsetting2(lv_event_t * e);
+extern lv_obj_t * ui_humdsetting2;
+void ui_event_timesetting2(lv_event_t * e);
+extern lv_obj_t * ui_timesetting2;
+void ui_event_tempsetting3(lv_event_t * e);
+extern lv_obj_t * ui_tempsetting3;
+void ui_event_humdsetting3(lv_event_t * e);
+extern lv_obj_t * ui_humdsetting3;
+void ui_event_timesetting3(lv_event_t * e);
+extern lv_obj_t * ui_timesetting3;
+void ui_event_tempsetting4(lv_event_t * e);
+extern lv_obj_t * ui_tempsetting4;
+void ui_event_humdsetting4(lv_event_t * e);
+extern lv_obj_t * ui_humdsetting4;
+void ui_event_timesetting4(lv_event_t * e);
+extern lv_obj_t * ui_timesetting4;
 void ui_event_okbnt(lv_event_t * e);
 extern lv_obj_t * ui_okbnt;
 extern lv_obj_t * ui_Label13;
 void ui_event_cancelbnt(lv_event_t * e);
 extern lv_obj_t * ui_cancelbnt;
 extern lv_obj_t * ui_Label14;
-// CUSTOM VARIABLES
+extern lv_obj_t * ui_Keyboard2;
 
+// CUSTOM VARIABLES
+static void dropdown_event_handler(lv_event_t * e);
 // SCREEN: ui_Screen3
 void ui_Screen3_screen_init(void);
 extern lv_obj_t * ui_Screen3;
@@ -121,13 +144,15 @@ void ui_event_Button5(lv_event_t * e);
 extern lv_obj_t * ui_Button5;
 extern lv_obj_t * ui_Label8;
 extern lv_obj_t * ui_Keyboard1;
-
-void ui_event_KeyBoard1(lv_event_t * e);
 // CUSTOM VARIABLES
 
 // EVENTS
 
 extern lv_obj_t * ui____initial_actions0;
+void ui_event_KeyBoard1(lv_event_t * e);
+// FONTS
+LV_FONT_DECLARE(ui_font_Font1);
+LV_FONT_DECLARE(ui_font_Small_Font);
 
 // UI INIT
 void ui_init(void);

@@ -4,12 +4,14 @@
 #include "ui/ui.h"
 #include "lovyanGfxSetup.h"
 #include <WiFi.h>
-#include <EEPROM.h>
 #include <ArduinoJson.h>
 #include "DHT.h"
+#include <SD.h>
+#include <PubSubClient.h>
 
 
-#define EEPROM_SIZE 100
+#define SD_CS_PIN 10
+#define WIFI_CREDENTIALS_FILE "/wifi_credentials.txt"
 
 typedef struct sensor {
   int id;
@@ -21,6 +23,14 @@ sensor DHTsensor;
 
 HardwareSerial mySerial(0);
 TaskHandle_t WiFiTaskHandle = NULL;
+TaskHandle_t SensorTaskHandle = NULL;
+TaskHandle_t MQTTTaskHandle = NULL;
+
+const char* mqtt_server = "116.108.82.46";
+const char* mqtt_topic = "window";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
 
 #define TFT_HOR_RES SCREEN_WIDTH
 #define TFT_VER_RES SCREEN_HEIGHT
@@ -79,82 +89,148 @@ void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 /** Set tick routine needed for LVGL internal timings **/
 static uint32_t my_tick_get_cb (void) { return millis(); }
 
+void ReceiveSensorDataFromSlave(void *parameter) {
+  while (true) {
+    while (mySerial.available()) { 
+        char input[128];
+        int len = mySerial.readBytesUntil('}', input, sizeof(input) - 2);
+        input[len] = '}'; 
+        input[len + 1] = '\0';
 
-void ReceiveSensorDataFromSlave() {
-  while (mySerial.available()) { 
-      char input[128];  // Buffer lớn đủ để chứa một JSON
-      int len = mySerial.readBytesUntil('}', input, sizeof(input) - 2);
-      input[len] = '}'; // Đóng JSON
-      input[len + 1] = '\0'; // Kết thúc chuỗi JSON
+        StaticJsonDocument<128> jsonRecvData;
+        DeserializationError error = deserializeJson(jsonRecvData, input);
 
-      // Giải mã dữ liệu JSON
-      StaticJsonDocument<128> jsonRecvData;
-      DeserializationError error = deserializeJson(jsonRecvData, input);
+        if (!error) {
+            String type = jsonRecvData["type"].as<String>();
+            if (type == "sensor") {    
+                DHTsensor.id = jsonRecvData["id"].as<String>().toInt();
+                DHTsensor.temp = jsonRecvData["temp"];
+                DHTsensor.hum = jsonRecvData["hum"];
+                DHTsensor.readingId = jsonRecvData["readingId"].as<String>().toInt();
 
-      if (!error) {
-          String type = jsonRecvData["type"].as<String>();
-          if (type == "sensor") {    
-              // Dùng .as<String>() để lấy giá trị dạng String
-              DHTsensor.id = jsonRecvData["id"].as<String>().toInt();
-              DHTsensor.temp = jsonRecvData["temp"];
-              DHTsensor.hum = jsonRecvData["hum"];
-              DHTsensor.readingId = jsonRecvData["readingId"].as<String>().toInt();
+                Serial.print("Received sensor data:\n");
+                Serial.print("ID: "); Serial.println(DHTsensor.id);
+                Serial.print("Temp: "); Serial.println(DHTsensor.temp);
+                Serial.print("Hum: "); Serial.println(DHTsensor.hum);
+                Serial.print("Reading ID: "); Serial.println(DHTsensor.readingId);
 
-              // In ra dữ liệu nhận được
-              Serial.print("Received sensor data:\n");
-              Serial.print("ID: "); Serial.println(DHTsensor.id);
-              Serial.print("Temp: "); Serial.println(DHTsensor.temp);
-              Serial.print("Hum: "); Serial.println(DHTsensor.hum);
-              Serial.print("Reading ID: "); Serial.println(DHTsensor.readingId);
-
-              // Cập nhật giao diện người dùng với dữ liệu mới
-              String tempString = String("PV: ") + String(DHTsensor.temp) + "°C";
-              String humString = String("PV: ") + String(DHTsensor.hum) + "%";
-              lv_label_set_text(ui_pvtemp, tempString.c_str());
-              lv_label_set_text(ui_pvhumi, humString.c_str());
-          }
-      } else {
-          // Nếu có lỗi khi giải mã JSON
-          Serial.println("Error parsing JSON");
-      }
+                String tempString = String("PV: ") + String(DHTsensor.temp) + "°C";
+                String humString = String("PV: ") + String(DHTsensor.hum) + "%";
+                lv_label_set_text(ui_pvtemp, tempString.c_str());
+                lv_label_set_text(ui_pvhumi, humString.c_str());
+            }
+        } else {
+            Serial.println("Error parsing JSON");
+        }
+    }
+    vTaskDelay(100); // Delay to prevent blocking other tasks
   }
 }
 
 
+// Hàm gửi dữ liệu sensor đến MQTT
+void sendSensorDataToMQTT() {
+  if (client.connected()) {
+    String payload = String("{\"temp\":") + String(DHTsensor.temp) + ", \"hum\":" + String(DHTsensor.hum) + "}";
+    client.publish(mqtt_topic, payload.c_str());
+    Serial.println("Sensor data sent to MQTT broker: " + payload);
+  }
+}
+
+void mqttConnectTask(void *parameter) {
+  // Kết nối với WiFi nếu chưa kết nối
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Connecting to WiFi...");
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(1000);
+      Serial.println("Connecting to WiFi...");
+    }
+    Serial.println("WiFi connected.");
+  }
+
+  // Kết nối với MQTT broker
+  client.setServer(mqtt_server, 1883);  // 1883 là port mặc định của MQTT
+ 
+
+  while (true) {
+    if (!client.connected()) {
+      Serial.println("Connecting to MQTT...");
+      // Tạo ID kết nối MQTT
+      String clientId = "ESP32Client-";
+      clientId += String(random(0xffff), HEX);
+
+      if (client.connect(clientId.c_str())) {
+        Serial.println("MQTT connected");
+        client.subscribe(mqtt_topic);  // Đăng ký subscribe cho topic
+      } else {
+        Serial.print("Failed to connect to MQTT. Retrying...");
+        delay(5000);
+      }
+    }
+
+    // Gửi dữ liệu sensor lên MQTT mỗi 10 giây
+    static unsigned long lastSendTime = 0;
+    if (millis() - lastSendTime > 10000) {
+      sendSensorDataToMQTT();
+      lastSendTime = millis();
+    }
+
+    client.loop();  // Để xử lý các tin nhắn đến từ MQTT
+    vTaskDelay(100);  // Delay để tránh task chiếm hết CPU
+  }
+}
+
+char prev_wifi_ssid[32] = "";
+char prev_wifi_password[32] = "";
 
 void saveWiFiCredentials(const char* ssid, const char* password) {
-
-  char stored_ssid[32];
-  EEPROM.readBytes(0, stored_ssid, 32);
-
-  // Kiểm tra xem SSID hoặc mật khẩu có thay đổi không
-  if (strcmp(stored_ssid, ssid) != 0 || strcmp(wifi_password, password) != 0) {
-      EEPROM.writeBytes(0, ssid, 32);
-      EEPROM.writeBytes(32, password, 32);
-      EEPROM.commit();
-      Serial.println("WiFi credentials saved.");
+  if (strcmp(wifi_ssid, prev_wifi_ssid) != 0 || strcmp(wifi_password, prev_wifi_password) != 0) {
+    Serial.println("New WiFi credentials entered!");
+    strncpy(prev_wifi_ssid, wifi_ssid, sizeof(prev_wifi_ssid) - 1);
+    strncpy(prev_wifi_password, wifi_password, sizeof(prev_wifi_password) - 1);
   } else {
-      Serial.println("The SSID and password are the same, no need to write it.");
+    // Dữ liệu không thay đổi
+    Serial.println("WiFi credentials have not changed.");
+  }
+
+  File file = SD.open("/wifi_credentials.txt", FILE_WRITE);
+
+  if (file) {
+    file.print(ssid);
+    file.print("\n");
+    file.print(password);
+    file.close();
+    Serial.println("WiFi credentials saved to SD card.");
+  } else {
+    Serial.println("Failed to open file for writing.");
   }
   
-  EEPROM.end();
 }
 
 void readWiFiCredentials() {
-  Serial.println("Reading WiFi credentials...");
+  
+  File file = SD.open("/wifi_credentials.txt", FILE_READ);
 
-  String savedSSID = EEPROM.readString(0);
-  String savedPassword = EEPROM.readString(32);
+  if (file) {
+    String ssid = file.readStringUntil('\n');
+    String password = file.readStringUntil('\n');
 
-  // savedSSID.trim();   //Remove spaces or strange characters
-  // savedPassword.trim();
+    ssid.trim(); // Xóa khoảng trắng đầu và cuối
+    password.trim(); // Xóa khoảng trắng đầu và cuối
 
-  //Copy it into a global variable, ensuring there are no errors
-  memset(wifi_ssid, 0, sizeof(wifi_ssid));
-  memset(wifi_password, 0, sizeof(wifi_password));
+    if (ssid.length() > 0 && password.length() > 0) {
+      ssid.toCharArray(wifi_ssid, sizeof(wifi_ssid));
+      password.toCharArray(wifi_password, sizeof(wifi_password));
 
-  savedSSID.toCharArray(wifi_ssid, sizeof(wifi_ssid) - 1);
-  savedPassword.toCharArray(wifi_password, sizeof(wifi_password) - 1);
+    } else {
+      Serial.println("Invalid WiFi credentials in file.");
+    }
+
+    file.close();
+
+    } else {
+      Serial.println("Failed to open file for reading.");
+    }
 
   Serial.print("SSID: ");
   Serial.println(wifi_ssid);
@@ -164,26 +240,25 @@ void readWiFiCredentials() {
 
 /** WiFi erase function stored in EEPROM **/
 void clearWiFiCredentials() {
-  EEPROM.begin(EEPROM_SIZE);  // Khởi tạo EEPROM
-  for (int i = 0; i < EEPROM_SIZE; i++) {
-    EEPROM.write(i, 0);  // Ghi giá trị 0 vào tất cả các byte trong EEPROM
+  // Xóa file chứa thông tin WiFi trên SD card
+  if (SD.exists("/wifi_credentials.txt")) {
+    SD.remove("/wifi_credentials.txt");
+    Serial.println("WiFi credentials cleared!");
   }
-  EEPROM.commit();  // Đảm bảo ghi các thay đổi vào bộ nhớ
-  EEPROM.end();     // Kết thúc làm việc với EEPROM
-  Serial.println("WiFi credentials cleared!");
 }
 
 /** Wifi config with LVGL */
 void wifiTask(void *parameter) {
-  const char* ssid = (const char*)parameter;
-  const char* password = get_wifi_password();
+  const char* ssid = wifi_ssid;
+  const char* password = wifi_password;
 
   // Ngắt kết nối WiFi cũ, thiết lập lại chế độ WiFi Station và bắt đầu kết nối mới
   WiFi.disconnect(true);
+  vTaskDelay(500);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
-  int timeout = 10; // Thời gian tối đa là 10 giây để kết nối WiFi
+  int timeout = 20; // Thời gian tối đa là 10 giây để kết nối WiFi
   while (WiFi.status() != WL_CONNECTED && timeout > 0) {
     vTaskDelay(500);  // Chờ 500ms trước khi thử lại
     Serial.print(".__.");
@@ -210,7 +285,7 @@ void wifiTask(void *parameter) {
   }
 
   // Sau khi kết nối hoặc thất bại, xóa task WiFi để giải phóng bộ nhớ
-  WiFiTaskHandle = NULL;  // Đặt lại handle task WiFi
+  //WiFiTaskHandle = NULL;  // Đặt lại handle task WiFi
   vTaskDelete(NULL);  // Xóa task hiện tại
 }
 
@@ -237,7 +312,6 @@ void connectWifi(lv_timer_t * timer) {
 void setup()
 {
   Serial.begin(115200);
-  EEPROM.begin(EEPROM_SIZE); 
   mySerial.begin(115200, SERIAL_8N1, 44, 43); // RX_PIN, TX_PIN là các chân UART0
 
   lv_init();
@@ -275,6 +349,12 @@ lv_tick_set_cb( my_tick_get_cb );
 
 ui_init();
 
+if (!SD.begin(SD_CS_PIN)) {
+  Serial.println("Failed to initialize SD card.");
+  return;
+}
+Serial.println("SD card initialized.");
+
   //clearWiFiCredentials();
   readWiFiCredentials();
 
@@ -282,7 +362,7 @@ ui_init();
     Serial.println("Connecting to WiFi...");
     // Tạo task WiFi, nếu WiFiTaskHandle đã có giá trị thì không tạo lại
     if (WiFiTaskHandle == NULL) {
-      xTaskCreate(wifiTask, "WiFiTask", 4096, (void*)wifi_ssid, 1, &WiFiTaskHandle);
+      xTaskCreate(wifiTask, "WiFiTask", 4096, (void*)wifi_ssid, 0, &WiFiTaskHandle);
     }
   } else {
     Serial.println("No valid WiFi credentials found. Please input new WiFi credentials.");
@@ -293,6 +373,13 @@ ui_init();
 lv_timer_t* WifiTask = lv_timer_create(connectWifi, 5000, NULL);
 
 Serial.println("Setup done");
+
+xTaskCreate(ReceiveSensorDataFromSlave, "SensorDataTask", 4096, NULL, 2, &SensorTaskHandle);
+if (MQTTTaskHandle == NULL) {
+  xTaskCreate(mqttConnectTask, "MQTTConnectTask", 4096, NULL, 1, &MQTTTaskHandle);
+}
+
+Serial.println("Setup done");
 }
 
 void loop()
@@ -300,5 +387,5 @@ void loop()
   lv_task_handler(); /* Let LVGL do its work. */
   delay(5);
 
-  ReceiveSensorDataFromSlave();
+  
 }

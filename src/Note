@@ -36,6 +36,61 @@
 //     return wifi_password;
 // }
 
+
+// static void dropdown_event_handler(lv_event_t * e)
+// {
+//     lv_obj_t * dropdown = lv_event_get_target(e); // Lấy đối tượng dropdown
+//     char selected_option[50]; // Tạo buffer để lưu chuỗi
+
+//     // Lấy lựa chọn hiện tại và lưu vào buffer
+//     lv_dropdown_get_selected_str(dropdown, selected_option, sizeof(selected_option));
+
+//     // Hiển thị textarea tương ứng với lựa chọn trong dropdown
+//     if (strcmp(selected_option, "Say khu am") == 0) {
+//         lv_obj_clear_flag(ui_tempsetting1, LV_OBJ_FLAG_HIDDEN);
+//         lv_obj_clear_flag(ui_humdsetting1, LV_OBJ_FLAG_HIDDEN);
+//         lv_obj_clear_flag(ui_timesetting1, LV_OBJ_FLAG_HIDDEN);
+//     } else if (strcmp(selected_option, "Len men") == 0) {
+//         lv_obj_clear_flag(ui_tempsetting2, LV_OBJ_FLAG_HIDDEN);
+//         lv_obj_clear_flag(ui_humdsetting2, LV_OBJ_FLAG_HIDDEN);
+//         lv_obj_clear_flag(ui_timesetting2, LV_OBJ_FLAG_HIDDEN);
+//     } else if (strcmp(selected_option, "On dinh") == 0) {
+//         lv_obj_clear_flag(ui_tempsetting3, LV_OBJ_FLAG_HIDDEN);
+//         lv_obj_clear_flag(ui_humdsetting3, LV_OBJ_FLAG_HIDDEN);
+//         lv_obj_clear_flag(ui_timesetting3, LV_OBJ_FLAG_HIDDEN);
+//     } else if (strcmp(selected_option, "Bao quan") == 0) {
+//         lv_obj_clear_flag(ui_tempsetting4, LV_OBJ_FLAG_HIDDEN);
+//         lv_obj_clear_flag(ui_humdsetting4, LV_OBJ_FLAG_HIDDEN);
+//         lv_obj_clear_flag(ui_timesetting4, LV_OBJ_FLAG_HIDDEN);
+//     }
+// }
+
+// static void ui_event_okbnt(lv_event_t * e)
+// {
+//     // Khai báo biến để lưu giá trị từ các giai đoạn
+//     const char * temperature1 = lv_textarea_get_text(ui_tempsetting1);
+//     const char * humidity1 = lv_textarea_get_text(ui_humdsetting1);
+//     const char * time1 = lv_textarea_get_text(ui_timesetting1);
+
+//     const char * temperature2 = lv_textarea_get_text(ui_tempsetting2);
+//     const char * humidity2 = lv_textarea_get_text(ui_humdsetting2);
+//     const char * time2 = lv_textarea_get_text(ui_timesetting2);
+
+//     const char * temperature3 = lv_textarea_get_text(ui_tempsetting3);
+//     const char * humidity3 = lv_textarea_get_text(ui_humdsetting3);
+//     const char * time3 = lv_textarea_get_text(ui_timesetting3);
+
+//     const char * temperature4 = lv_textarea_get_text(ui_tempsetting4);
+//     const char * humidity4 = lv_textarea_get_text(ui_humdsetting4);
+//     const char * time4 = lv_textarea_get_text(ui_timesetting4);
+
+//     // In thông số của tất cả các giai đoạn
+//     printf("Giai doan 1 (Say khu am) - Nhiệt độ: %s, Độ ẩm: %s, Thời gian: %s\n", temperature1, humidity1, time1);
+//     printf("Giai doan 2 (Len men) - Nhiệt độ: %s, Độ ẩm: %s, Thời gian: %s\n", temperature2, humidity2, time2);
+//     printf("Giai doan 3 (On dinh) - Nhiệt độ: %s, Độ ẩm: %s, Thời gian: %s\n", temperature3, humidity3, time3);
+//     printf("Giai doan 4 (Bao quan) - Nhiệt độ: %s, Độ ẩm: %s, Thời gian: %s\n", temperature4, humidity4, time4);
+// }
+
 // --------------------------Thêm vào ui.h********************************************
 
 // void ui_event_KeyBoard1(lv_event_t * e);
@@ -46,6 +101,8 @@
 // const char * get_wifi_ssid();
 // const char * get_wifi_password();
 
+// static void dropdown_event_handler(lv_event_t * e);
+
 // --------------------------Thêm vào screen4********************************************
 
 // lv_obj_add_event_cb(ui_Keyboard1, ui_event_KeyBoard1, LV_EVENT_ALL, NULL);
@@ -55,3 +112,8 @@
     // lv_chart_set_axis_tick(ui_Chart2, LV_CHART_AXIS_PRIMARY_X, 10, 5, 5, 2, true, 50);
     // lv_chart_set_axis_tick(ui_Chart2, LV_CHART_AXIS_PRIMARY_Y, 10, 5, 5, 2, true, 50);
     // lv_chart_set_axis_tick(ui_Chart2, LV_CHART_AXIS_SECONDARY_Y, 10, 5, 5, 2, true, 25);
+
+
+// --------------------------Thêm vào screen22********************************************
+    lv_dropdown_set_action(ui_optionprocess, dropdown_event_handler);
+    lv_obj_add_event_cb(ui_okbnt, ui_event_okbnt, LV_EVENT_CLICKED, NULL);
